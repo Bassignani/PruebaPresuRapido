@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Presupuesto Rápido</title>
+    <title></title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -37,14 +37,14 @@
           <p contenteditable="true">Córdoba 641 0</p>
           <p contenteditable="true">Rosario Norte (2000) Santa Fe, Argentina</p>
           <p contenteditable="true">Transportista:</p>
-          <p contenteditable="true">Vendedor: Pablo Maldonado</p>
+          <p contenteditable="true">Vendedor: </p>
           <p contenteditable="true">Motivo:</p>
         </div>
         <div>
           <p>N° Documento: <span contenteditable="true"> </span></p>
           <p>CUIT: <span contenteditable="true">30709746185</span></p>
           <p contenteditable="true">Responsable Inscripto</p>
-          <p>Condición de pago: <span contenteditable="true">Transferencia</span></p>
+          <p>Condición de pago: <span contenteditable="true"></span></p>
           <p>Vencimiento: <span id="vencimiento-hoy"></span></p>
         </div>
       </section>
@@ -77,11 +77,10 @@
 
         <div class="totals">
           <p>Filas: <span id="filas">0</span></p>
-          <p>Cantidad total: <span id="cant-total">0.00</span></p>
           <p>Subtotal: <strong id="subtotal">$0.00</strong></p>
+          <p>Cantidad total: <span id="cant-total">0.00</span></p>
           <label>
-            IVA %
-            <input id="iva" type="number" step="0.01" value="21" />
+            IVA <input id="iva" type="number" step="0.01" value="21" />
           </label>
           <p>Impuestos: <strong id="impuestos">$0.00</strong></p>
           <p class="grand-total">TOTAL: <span id="total">$0.00</span></p>

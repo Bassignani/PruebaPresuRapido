@@ -83,7 +83,13 @@ function addRow(item = {}) {
 
 addItemBtn.addEventListener("click", () => addRow());
 ivaInput.addEventListener("input", refreshTotals);
-printBtn.addEventListener("click", () => window.print());
+printBtn.addEventListener("click", () => {
+  const numeroPresupuesto = document.querySelector('.doc-info h2 span').textContent;
+  const originalTitle = document.title;
+  document.title = "Presupuesto " + numeroPresupuesto;
+  window.print();
+  document.title = originalTitle;
+});
 
 [
   { code: "ARTMOD", desc: "4869 - CUCHARA ALBAÑIL N° 8", qty: 2, price: 31650 },
