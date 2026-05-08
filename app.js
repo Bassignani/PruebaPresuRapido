@@ -2,6 +2,7 @@ const body = document.getElementById("items-body");
 const template = document.getElementById("item-template");
 const addItemBtn = document.getElementById("add-item");
 const printBtn = document.getElementById("print");
+const remitoBtn = document.getElementById("remito");
 const ivaInput = document.getElementById("iva");
 
 const fmt = new Intl.NumberFormat("es-AR", {
@@ -74,8 +75,8 @@ function addRow(item = {}) {
   row.querySelector(".code").value = item.code ?? "ARTMOD";
   row.querySelector(".desc").value = item.desc ?? "Producto";
   row.querySelector(".qty").value = item.qty ?? 1;
-  row.querySelector(".price").value = item.price ?? 0;
-
+  row.querySelector(".price").value = `${item.price ?? 0}`;
+  
   attachRowEvents(row);
   body.appendChild(row);
   refreshTotals();
@@ -89,6 +90,37 @@ printBtn.addEventListener("click", () => {
   document.title = "Presupuesto " + numeroPresupuesto;
   window.print();
   document.title = originalTitle;
+});
+
+remitoBtn.addEventListener("click", () => {
+  const numeroPresupuesto = document.querySelector('.doc-info h2 span').textContent;
+  const originalTitle = document.title;
+  const docLetter = document.querySelector('.doc-letter');
+  const originalLetter = docLetter.textContent;
+  const docTitle = document.querySelector('.doc-info h2');
+  const originalTitleText = docTitle.textContent;
+  const priceHeaders = document.querySelectorAll('th:nth-child(4), th:nth-child(5)');
+  const priceCells = document.querySelectorAll('td:nth-child(4), td:nth-child(5)');
+  const totalsSection = document.querySelector('.totals');
+
+  // Cambiar a Remito
+  docLetter.textContent = 'R';
+  docTitle.textContent = docTitle.textContent.replace('Presupuesto', 'Remito');
+  document.title = "Remito " + numeroPresupuesto;
+  priceHeaders.forEach(th => th.style.display = 'none');
+  priceCells.forEach(td => td.style.display = 'none');
+  totalsSection.style.display = 'none';
+
+  // Imprimir
+  window.print();
+
+  // Restaurar
+  docLetter.textContent = originalLetter;
+  docTitle.textContent = originalTitleText;
+  document.title = originalTitle;
+  priceHeaders.forEach(th => th.style.display = '');
+  priceCells.forEach(td => td.style.display = '');
+  totalsSection.style.display = '';
 });
 
 [
