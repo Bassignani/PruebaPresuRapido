@@ -4,11 +4,198 @@ const addItemBtn = document.getElementById("add-item");
 const printBtn = document.getElementById("print");
 const remitoBtn = document.getElementById("remito");
 const ivaInput = document.getElementById("iva");
+const newBudgetBtn = document.getElementById("new-budget");
+const loadBudgetBtn = document.getElementById("load-budget");
+const saveBudgetBtn = document.getElementById("save-budget");
+const budgetListDialog = document.getElementById("budget-list-dialog");
+const closeDialogBtn = document.getElementById("close-dialog");
+const budgetNumberSpan = document.getElementById("budget-number");
+const currentBudgetNameSpan = document.getElementById("current-budget-name");
+
+const API_URL = window.location.origin;
 
 const fmt = new Intl.NumberFormat("es-AR", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
+
+let currentBudgetId = null;
+
+// Obtener datos actuales del presupuesto
+function getCurrentBudgetData() {
+  const rows = [...body.querySelectorAll("tr")];
+  const items = rows.map(row => ({
+    code: row.querySelector(".code").value,
+    desc: row.querySelector(".desc").value,
+    qty: parseFloat(row.querySelector(".qty").value) || 0,
+    price: parseFloat(row.querySelector(".price").value) || 0,
+  }));
+
+  return {
+    number: budgetNumberSpan.textContent,
+    date: document.getElementById("fecha-hoy").textContent,
+    iva: ivaInput.value,
+    items: items,
+    clientInfo: {
+      name: document.querySelector('.party-info > div:first-child > p').textContent,
+      address: document.querySelectorAll('.party-info > div:first-child > p')[1].textContent,
+      city: document.querySelectorAll('.party-info > div:first-child > p')[2].textContent,
+      document: document.querySelector('.party-info > div:last-child p span').textContent,
+      cuit: document.querySelectorAll('.party-info > div:last-child p')[1].querySelector('span').textContent,
+      condition: document.querySelectorAll('.party-info > div:last-child p')[3].querySelector('span').textContent,
+      dueDate: document.getElementById("vencimiento-hoy").textContent,
+    },
+    observations: document.querySelector('.obs > p:last-child').textContent,
+    savedAt: new Date().toISOString(),
+  };
+}
+
+// Guardar presupuesto
+async function saveBudget() {
+  try {
+    if (!currentBudgetId) {
+      alert("Por favor crea un nuevo presupuesto primero");
+      return;
+    }
+
+    const budgetData = getCurrentBudgetData();
+    
+    const response = await fetch(`${API_URL}/api/budgets/save`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        budgetNumber: currentBudgetId,
+        data: budgetData
+      })
+    });
+
+    const result = await response.json();
+    
+    if (result.success) {
+      currentBudgetNameSpan.textContent = `Presupuesto: ${currentBudgetId}`;
+      alert("Presupuesto guardado correctamente");
+    } else {
+      alert("Error al guardar: " + result.error);
+    }
+  } catch (error) {
+    console.error("Error saving budget:", error);
+    alert("Error al guardar el presupuesto: " + error.message);
+  }
+}
+
+// Cargar presupuesto desde servidor
+async function loadBudget(budgetNumber) {
+  try {
+    const response = await fetch(`${API_URL}/api/budgets/${budgetNumber}`);
+    const result = await response.json();
+
+    if (!result.success) {
+      alert("Error al cargar: " + result.error);
+      return;
+    }
+
+    const budgetData = result.budget;
+    currentBudgetId = budgetNumber;
+    budgetNumberSpan.textContent = budgetData.number;
+    document.getElementById("fecha-hoy").textContent = budgetData.date;
+    ivaInput.value = budgetData.iva;
+    document.getElementById("vencimiento-hoy").textContent = budgetData.clientInfo.dueDate;
+
+    // Cargar info del cliente
+    const clientDivs = document.querySelectorAll('.party-info > div');
+    clientDivs[0].children[0].textContent = budgetData.clientInfo.name;
+    clientDivs[0].children[1].textContent = budgetData.clientInfo.address;
+    clientDivs[0].children[2].textContent = budgetData.clientInfo.city;
+    clientDivs[1].children[0].querySelector('span').textContent = budgetData.clientInfo.document;
+    clientDivs[1].children[1].querySelector('span').textContent = budgetData.clientInfo.cuit;
+    clientDivs[1].children[3].querySelector('span').textContent = budgetData.clientInfo.condition;
+
+    // Observaciones
+    document.querySelector('.obs > p:last-child').textContent = budgetData.observations;
+
+    // Limpiar items existentes
+    body.innerHTML = '';
+
+    // Cargar items
+    budgetData.items.forEach(addRow);
+
+    currentBudgetNameSpan.textContent = `Presupuesto: ${budgetNumber}`;
+    budgetListDialog.close();
+  } catch (error) {
+    console.error("Error loading budget:", error);
+    alert("Error al cargar el presupuesto: " + error.message);
+  }
+}
+
+// Mostrar lista de presupuestos guardados
+async function showBudgetList() {
+  try {
+    const response = await fetch(`${API_URL}/api/budgets/list`);
+    const result = await response.json();
+
+    const listContainer = document.getElementById("budget-list");
+    listContainer.innerHTML = '';
+
+    if (!result.success || result.budgets.length === 0) {
+      listContainer.innerHTML = '<p>No hay presupuestos guardados</p>';
+    } else {
+      result.budgets.forEach(budget => {
+        const div = document.createElement('div');
+        div.className = 'budget-item';
+        const span = document.createElement('span');
+        span.textContent = `${budget.number} - ${new Date(budget.date).toLocaleDateString('es-AR')}`;
+        const btn = document.createElement('button');
+        btn.textContent = 'Abrir';
+        btn.addEventListener('click', () => loadBudget(budget.number));
+        div.appendChild(span);
+        div.appendChild(btn);
+        listContainer.appendChild(div);
+      });
+    }
+
+    budgetListDialog.showModal();
+  } catch (error) {
+    console.error("Error loading budget list:", error);
+    alert("Error al cargar la lista de presupuestos: " + error.message);
+  }
+}
+
+// Crear nuevo presupuesto
+async function newBudget() {
+  try {
+    if (currentBudgetId && body.querySelectorAll("tr").length > 0) {
+      if (!confirm("Hay un presupuesto actual. ¿Desea guardarlo antes de crear uno nuevo?")) {
+        return;
+      } else {
+        await saveBudget();
+      }
+    }
+
+    const response = await fetch(`${API_URL}/api/budgets/new`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+
+    const result = await response.json();
+    
+    if (result.success) {
+      currentBudgetId = result.budgetNumber;
+      currentBudgetNameSpan.textContent = '';
+      body.innerHTML = '';
+      budgetNumberSpan.textContent = result.budgetNumber;
+      refreshTotals();
+    } else {
+      alert("Error al crear presupuesto: " + result.error);
+    }
+  } catch (error) {
+    console.error("Error creating budget:", error);
+    alert("Error al crear nuevo presupuesto: " + error.message);
+  }
+}
 
 function today() {
   const d = new Date();
@@ -82,10 +269,16 @@ function addRow(item = {}) {
   refreshTotals();
 }
 
+// Event listeners
+newBudgetBtn.addEventListener("click", newBudget);
+loadBudgetBtn.addEventListener("click", showBudgetList);
+saveBudgetBtn.addEventListener("click", saveBudget);
+closeDialogBtn.addEventListener("click", () => budgetListDialog.close());
+
 addItemBtn.addEventListener("click", () => addRow());
 ivaInput.addEventListener("input", refreshTotals);
 printBtn.addEventListener("click", () => {
-  const numeroPresupuesto = document.querySelector('.doc-info h2 span').textContent;
+  const numeroPresupuesto = budgetNumberSpan.textContent;
   const originalTitle = document.title;
   document.title = "Presupuesto " + numeroPresupuesto;
   window.print();
@@ -93,7 +286,7 @@ printBtn.addEventListener("click", () => {
 });
 
 remitoBtn.addEventListener("click", () => {
-  const numeroPresupuesto = document.querySelector('.doc-info h2 span').textContent;
+  const numeroPresupuesto = budgetNumberSpan.textContent;
   const originalTitle = document.title;
   const docLetter = document.querySelector('.doc-letter');
   const originalLetter = docLetter.textContent;
@@ -123,8 +316,5 @@ remitoBtn.addEventListener("click", () => {
   totalsSection.style.display = '';
 });
 
-[
-  { code: "ARTMOD", desc: "4869 - CUCHARA ALBAÑIL N° 8", qty: 2, price: 31650 },
-  { code: "ARTMOD", desc: "4848 - PALA C/CORTO ANC", qty: 2, price: 78438.07 },
-  { code: "ARTMOD", desc: "4850 - PALA C/CORTO CORAZÓN", qty: 2, price: 72626.25 },
-].forEach(addRow);
+// Inicializar con nuevo presupuesto
+newBudget();

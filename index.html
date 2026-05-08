@@ -7,6 +7,21 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <nav class="top-nav">
+      <button id="new-budget">📋 Nuevo Presupuesto</button>
+      <button id="load-budget">📂 Abrir Presupuesto</button>
+      <button id="save-budget">💾 Guardar</button>
+      <span id="current-budget-name"></span>
+    </nav>
+
+    <dialog id="budget-list-dialog">
+      <div class="dialog-content">
+        <h2>Presupuestos Guardados</h2>
+        <div id="budget-list"></div>
+        <button id="close-dialog">Cerrar</button>
+      </div>
+    </dialog>
+
     <main class="page" id="presupuesto">
       <header class="top-header">
         <section class="company">
@@ -22,7 +37,7 @@
         </section>
 
         <section class="doc-info">
-          <h2>Presupuesto N° <span contenteditable="true">0001-00041862</span></h2>
+          <h2>Presupuesto N° <span id="budget-number">0001-00041862</span></h2>
           <p>Fecha: <span id="fecha-hoy"></span></p>
           <p>CUIT: <span contenteditable="true">30714717576</span></p>
           <p>IIBB: <span contenteditable="true">30714717576</span></p>
