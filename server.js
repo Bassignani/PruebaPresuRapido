@@ -10,6 +10,10 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
+const AUTH_USER = 'admin';
+const AUTH_PASS = 'presu123';
+const AUTH_TOKEN = 'presu-token-2026';
+
 // Crear carpeta Storage si no existe
 const storageDir = path.join(__dirname, 'Storage');
 if (!fs.existsSync(storageDir)) {
@@ -58,15 +62,35 @@ function generateBudgetNumber() {
   };
 }
 
+// POST /api/login - Autenticación mínima
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+
+  if (username === AUTH_USER && password === AUTH_PASS) {
+    return res.json({ success: true, token: AUTH_TOKEN });
+  }
+
+  return res.status(401).json({ success: false, error: 'Usuario o contraseña incorrectos' });
+});
+
+function requireAuth(req, res, next) {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.replace('Bearer ', '');
+
+  if (token === AUTH_TOKEN) {
+    return next();
+  }
+
+  return res.status(401).json({ success: false, error: 'No autorizado' });
+}
+
 // POST /api/budgets/new - Generar nuevo número de presupuesto
-app.post('/api/budgets/new', (req, res) => {
+app.post('/api/budgets/new', requireAuth, (req, res) => {
   try {
     const budget = generateBudgetNumber();
     
-    // Crear carpeta del presupuesto
-    if (!fs.existsSync(budget.fullPath)) {
-      fs.mkdirSync(budget.fullPath, { recursive: true });
-    }
+    // No crear carpeta aquí, solo generar número
+    // La carpeta se crea cuando se guarda el presupuesto
     
     res.json({
       success: true,
@@ -79,7 +103,7 @@ app.post('/api/budgets/new', (req, res) => {
 });
 
 // POST /api/budgets/save - Guardar presupuesto
-app.post('/api/budgets/save', (req, res) => {
+app.post('/api/budgets/save', requireAuth, (req, res) => {
   try {
     const { budgetNumber, data } = req.body;
     
@@ -93,7 +117,7 @@ app.post('/api/budgets/save', (req, res) => {
     
     const budgetDir = path.join(storageDir, dateFolder, counterFolder);
     
-    // Crear carpeta si no existe
+    // Crear carpetas si no existen
     if (!fs.existsSync(budgetDir)) {
       fs.mkdirSync(budgetDir, { recursive: true });
     }
@@ -114,7 +138,7 @@ app.post('/api/budgets/save', (req, res) => {
 });
 
 // GET /api/budgets/list - Listar presupuestos guardados
-app.get('/api/budgets/list', (req, res) => {
+app.get('/api/budgets/list', requireAuth, (req, res) => {
   try {
     const budgets = [];
     
@@ -158,7 +182,7 @@ app.get('/api/budgets/list', (req, res) => {
 });
 
 // GET /api/budgets/:number - Cargar presupuesto específico
-app.get('/api/budgets/:number', (req, res) => {
+app.get('/api/budgets/:number', requireAuth, (req, res) => {
   try {
     const budgetNumber = req.params.number;
     const dateFolder = budgetNumber.substring(0, 8);

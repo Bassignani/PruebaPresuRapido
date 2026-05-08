@@ -7,11 +7,30 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <div class="login-screen" id="login-screen">
+      <div class="login-box">
+        <h2>Ingreso</h2>
+        <form id="login-form">
+          <label>
+            Usuario
+            <input id="login-user" type="text" required autocomplete="username" />
+          </label>
+          <label>
+            Contraseña
+            <input id="login-pass" type="password" required autocomplete="current-password" />
+          </label>
+          <button type="submit">Ingresar</button>
+          <p class="login-error" id="login-error"></p>
+        </form>
+      </div>
+    </div>
+
     <nav class="top-nav">
       <button id="new-budget">📋 Nuevo Presupuesto</button>
       <button id="load-budget">📂 Abrir Presupuesto</button>
       <button id="save-budget">💾 Guardar</button>
       <span id="current-budget-name"></span>
+      <button id="logout" class="logout-button">Salir</button>
     </nav>
 
     <dialog id="budget-list-dialog">
@@ -37,7 +56,7 @@
         </section>
 
         <section class="doc-info">
-          <h2>Presupuesto N° <span id="budget-number">0001-00041862</span></h2>
+          <h2>Presupuesto N° <span id="budget-number">-</span></h2>
           <p>Fecha: <span id="fecha-hoy"></span></p>
           <p>CUIT: <span contenteditable="true">30714717576</span></p>
           <p>IIBB: <span contenteditable="true">30714717576</span></p>

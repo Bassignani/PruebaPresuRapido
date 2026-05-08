@@ -11,8 +11,61 @@ const budgetListDialog = document.getElementById("budget-list-dialog");
 const closeDialogBtn = document.getElementById("close-dialog");
 const budgetNumberSpan = document.getElementById("budget-number");
 const currentBudgetNameSpan = document.getElementById("current-budget-name");
+const logoutBtn = document.getElementById("logout");
+const loginScreen = document.getElementById("login-screen");
+const loginForm = document.getElementById("login-form");
+const loginUser = document.getElementById("login-user");
+const loginPass = document.getElementById("login-pass");
+const loginError = document.getElementById("login-error");
 
 const API_URL = window.location.origin;
+
+let authToken = localStorage.getItem('presuAuthToken') || '';
+
+function apiFetch(path, options = {}) {
+  options.headers = options.headers || {};
+
+  if (authToken) {
+    options.headers.Authorization = `Bearer ${authToken}`;
+  }
+
+  if (options.body && !options.headers['Content-Type']) {
+    options.headers['Content-Type'] = 'application/json';
+  }
+
+  return fetch(`${API_URL}${path}`, options).then(async response => {
+    if (response.status === 401) {
+      clearAuth();
+      throw new Error('No autorizado. Por favor inicie sesión.');
+    }
+    return response.json();
+  });
+}
+
+function showLogin() {
+  loginScreen.style.display = 'flex';
+  document.querySelector('.top-nav').style.display = 'none';
+  document.getElementById('presupuesto').style.display = 'none';
+  logoutBtn.style.display = 'none';
+}
+
+function showApp() {
+  loginScreen.style.display = 'none';
+  document.querySelector('.top-nav').style.display = 'flex';
+  document.getElementById('presupuesto').style.display = 'block';
+  logoutBtn.style.display = 'inline-flex';
+}
+
+function setAuthToken(token) {
+  authToken = token;
+  localStorage.setItem('presuAuthToken', token);
+}
+
+function clearAuth() {
+  authToken = '';
+  localStorage.removeItem('presuAuthToken');
+  showLogin();
+}
 
 const fmt = new Intl.NumberFormat("es-AR", {
   minimumFractionDigits: 2,
@@ -59,20 +112,14 @@ async function saveBudget() {
     }
 
     const budgetData = getCurrentBudgetData();
-    
-    const response = await fetch(`${API_URL}/api/budgets/save`, {
+    const result = await apiFetch('/api/budgets/save', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify({
         budgetNumber: currentBudgetId,
         data: budgetData
       })
     });
 
-    const result = await response.json();
-    
     if (result.success) {
       currentBudgetNameSpan.textContent = `Presupuesto: ${currentBudgetId}`;
       alert("Presupuesto guardado correctamente");
@@ -88,8 +135,7 @@ async function saveBudget() {
 // Cargar presupuesto desde servidor
 async function loadBudget(budgetNumber) {
   try {
-    const response = await fetch(`${API_URL}/api/budgets/${budgetNumber}`);
-    const result = await response.json();
+    const result = await apiFetch(`/api/budgets/${budgetNumber}`);
 
     if (!result.success) {
       alert("Error al cargar: " + result.error);
@@ -132,8 +178,7 @@ async function loadBudget(budgetNumber) {
 // Mostrar lista de presupuestos guardados
 async function showBudgetList() {
   try {
-    const response = await fetch(`${API_URL}/api/budgets/list`);
-    const result = await response.json();
+    const result = await apiFetch('/api/budgets/list');
 
     const listContainer = document.getElementById("budget-list");
     listContainer.innerHTML = '';
@@ -173,14 +218,9 @@ async function newBudget() {
       }
     }
 
-    const response = await fetch(`${API_URL}/api/budgets/new`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      }
+    const result = await apiFetch('/api/budgets/new', {
+      method: 'POST'
     });
-
-    const result = await response.json();
     
     if (result.success) {
       currentBudgetId = result.budgetNumber;
@@ -195,6 +235,54 @@ async function newBudget() {
     console.error("Error creating budget:", error);
     alert("Error al crear nuevo presupuesto: " + error.message);
   }
+}
+
+loginForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  loginError.textContent = '';
+
+  try {
+    const username = loginUser.value.trim();
+    const password = loginPass.value.trim();
+
+    if (!username || !password) {
+      loginError.textContent = 'Usuario y contraseña son obligatorios.';
+      return;
+    }
+
+    const response = await fetch(`${API_URL}/api/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ username, password })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      setAuthToken(result.token);
+      loginUser.value = '';
+      loginPass.value = '';
+      showApp();
+      newBudget();
+    } else {
+      loginError.textContent = result.error || 'Credenciales incorrectas';
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    loginError.textContent = 'Error conectando con el servidor.';
+  }
+});
+
+logoutBtn.addEventListener('click', () => {
+  clearAuth();
+});
+
+if (authToken) {
+  showApp();
+} else {
+  showLogin();
 }
 
 function today() {
@@ -316,5 +404,5 @@ remitoBtn.addEventListener("click", () => {
   totalsSection.style.display = '';
 });
 
-// Inicializar con nuevo presupuesto
-newBudget();
+// El inicio queda en la pantalla de login y el usuario decide crear un presupuesto tras iniciar sesión.
+
