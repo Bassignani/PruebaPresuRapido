@@ -1,13 +1,18 @@
 {
   "name": "presu-rapido",
   "version": "1.0.0",
-  "description": "Aplicación de presupuestos con persistencia en servidor",
+  "description": "Aplicaci\u00f3n de presupuestos con persistencia en servidor",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "test": "node --test",
+    "test:watch": "node --test --watch"
   },
-  "keywords": ["presupuestos", "invoicing"],
+  "keywords": [
+    "presupuestos",
+    "invoicing"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
