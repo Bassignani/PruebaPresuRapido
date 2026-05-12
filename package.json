@@ -1,7 +1,7 @@
 {
   "name": "presu-rapido",
   "version": "1.0.0",
-  "description": "Aplicaci\u00f3n de presupuestos con persistencia en servidor",
+  "description": "Aplicación de presupuestos con persistencia en servidor",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -16,15 +16,15 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
     "cors": "^2.8.5",
+    "express": "^4.18.2",
     "zod": "^3.23.8"
   },
   "engines": {
-    "node": "18"
+    "node": ">=18"
   },
   "devDependencies": {
     "supertest": "^7.1.1",
-    "vitest": "^2.1.8"
+    "vitest": "^4.1.6"
   }
 }

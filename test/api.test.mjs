@@ -1,10 +1,12 @@
-const path = require('node:path');
-const fs = require('node:fs');
-const request = require('supertest');
-const { describe, it, expect, beforeEach } = require('vitest');
-const { createApp } = require('../src/app');
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import fs from 'node:fs';
+import request from 'supertest';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { createApp } from '../src/app.js';
 
-const storageRoot = path.join(__dirname, '..', 'Storage');
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const storageRoot = join(__dirname, '..', 'Storage');
 
 function cleanupTestBudgets() {
   if (!fs.existsSync(storageRoot)) return;
@@ -12,7 +14,7 @@ function cleanupTestBudgets() {
   const dd = String(today.getDate()).padStart(2, '0');
   const mm = String(today.getMonth() + 1).padStart(2, '0');
   const yyyy = today.getFullYear();
-  const dateFolder = path.join(storageRoot, `${dd}${mm}${yyyy}`);
+  const dateFolder = join(storageRoot, `${dd}${mm}${yyyy}`);
   if (fs.existsSync(dateFolder)) fs.rmSync(dateFolder, { recursive: true, force: true });
 }
 
