@@ -1,7 +1,7 @@
 {
   "name": "presu-rapido",
   "version": "1.0.0",
-  "description": "Aplicación de presupuestos con persistencia en servidor",
+  "description": "Aplicaci\u00f3n de presupuestos con persistencia en servidor",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
