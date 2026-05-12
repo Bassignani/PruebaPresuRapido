@@ -30,6 +30,11 @@ Storage/
 │       └── presupuesto.json
 ```
 
+
+## Arquitectura
+
+La aplicación fue modularizada para facilitar crecimiento y mantenimiento. Revisa [`ARCHITECTURE.md`](./ARCHITECTURE.md) para lineamientos y roadmap de evolución.
+
 ## Uso Local
 
 ### Requisitos
