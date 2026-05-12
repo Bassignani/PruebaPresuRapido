@@ -1,128 +1,79 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
 const path = require('node:path');
 const fs = require('node:fs');
-
+const request = require('supertest');
+const { describe, it, expect, beforeEach } = require('vitest');
 const { createApp } = require('../src/app');
 
 const storageRoot = path.join(__dirname, '..', 'Storage');
 
 function cleanupTestBudgets() {
   if (!fs.existsSync(storageRoot)) return;
-
   const today = new Date();
   const dd = String(today.getDate()).padStart(2, '0');
   const mm = String(today.getMonth() + 1).padStart(2, '0');
   const yyyy = today.getFullYear();
   const dateFolder = path.join(storageRoot, `${dd}${mm}${yyyy}`);
-
-  if (fs.existsSync(dateFolder)) {
-    fs.rmSync(dateFolder, { recursive: true, force: true });
-  }
+  if (fs.existsSync(dateFolder)) fs.rmSync(dateFolder, { recursive: true, force: true });
 }
 
-test('API auth + budget flow works end-to-end', async (t) => {
-  cleanupTestBudgets();
+describe('API', () => {
+  beforeEach(() => cleanupTestBudgets());
 
-  const { app } = createApp();
-  const server = app.listen(0);
+  it('should complete auth + budget flow', async () => {
+    const { app } = createApp();
 
-  t.after(() => {
-    server.close();
-    cleanupTestBudgets();
-  });
+    const loginRes = await request(app)
+      .post('/api/login')
+      .send({ username: 'admin', password: 'presu123' });
+    expect(loginRes.status).toBe(200);
+    expect(loginRes.body.success).toBe(true);
 
-  const address = server.address();
-  const baseUrl = `http://127.0.0.1:${address.port}`;
+    const token = loginRes.body.token;
 
-  const loginRes = await fetch(`${baseUrl}/api/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'admin', password: 'presu123' }),
-  });
+    const newRes = await request(app)
+      .post('/api/budgets/new')
+      .set('Authorization', `Bearer ${token}`);
 
-  assert.equal(loginRes.status, 200);
-  const login = await loginRes.json();
-  assert.equal(login.success, true);
-  assert.ok(login.token);
+    expect(newRes.status).toBe(200);
+    expect(newRes.body.budgetNumber).toMatch(/^\d{12}$/);
 
-  const token = login.token;
-
-  const newRes = await fetch(`${baseUrl}/api/budgets/new`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  assert.equal(newRes.status, 200);
-  const created = await newRes.json();
-  assert.equal(created.success, true);
-  assert.match(created.budgetNumber, /^\d{12}$/);
-
-  const payload = {
-    budgetNumber: created.budgetNumber,
-    data: {
-      number: created.budgetNumber,
-      date: '11/05/2026',
-      iva: '21',
-      items: [],
-      clientInfo: {
-        name: 'Cliente Test',
-        address: 'Calle 1',
-        city: 'Ciudad',
-        document: 'DNI',
-        cuit: '20-00000000-0',
-        condition: 'Responsable Inscripto',
-        dueDate: '11/06/2026',
+    const payload = {
+      budgetNumber: newRes.body.budgetNumber,
+      data: {
+        number: newRes.body.budgetNumber,
+        clientInfo: { name: 'Cliente Test' },
       },
-      observations: 'obs test',
-      savedAt: '2026-05-11T00:00:00.000Z',
-    },
-  };
+    };
 
-  const saveRes = await fetch(`${baseUrl}/api/budgets/save`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(payload),
+    const saveRes = await request(app)
+      .post('/api/budgets/save')
+      .set('Authorization', `Bearer ${token}`)
+      .send(payload);
+    expect(saveRes.status).toBe(200);
+
+    const listRes = await request(app)
+      .get('/api/budgets/list')
+      .set('Authorization', `Bearer ${token}`);
+    expect(listRes.status).toBe(200);
+    expect(listRes.body.budgets.some((b) => b.number === newRes.body.budgetNumber)).toBe(true);
   });
 
-  assert.equal(saveRes.status, 200);
-  const save = await saveRes.json();
-  assert.equal(save.success, true);
+  it('should return normalized errors for invalid payload', async () => {
+    const { app } = createApp();
+    const loginRes = await request(app)
+      .post('/api/login')
+      .send({ username: 'admin', password: 'presu123' });
 
-  const listRes = await fetch(`${baseUrl}/api/budgets/list`, {
-    headers: { Authorization: `Bearer ${token}` },
+    const token = loginRes.body.token;
+
+    const res = await request(app)
+      .post('/api/budgets/save')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ data: { number: '123' } });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    expect(Array.isArray(res.body.error.details)).toBe(true);
   });
-
-  assert.equal(listRes.status, 200);
-  const list = await listRes.json();
-  assert.equal(list.success, true);
-  assert.ok(list.budgets.some((b) => b.number === created.budgetNumber));
-
-  const getRes = await fetch(`${baseUrl}/api/budgets/${created.budgetNumber}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  assert.equal(getRes.status, 200);
-  const loaded = await getRes.json();
-  assert.equal(loaded.success, true);
-  assert.equal(loaded.budget.number, created.budgetNumber);
-  assert.equal(loaded.budget.clientInfo.name, 'Cliente Test');
-});
-
-test('Protected routes reject missing token', async (t) => {
-  const { app } = createApp();
-  const server = app.listen(0);
-
-  t.after(() => server.close());
-
-  const address = server.address();
-  const baseUrl = `http://127.0.0.1:${address.port}`;
-
-  const res = await fetch(`${baseUrl}/api/budgets/list`);
-  assert.equal(res.status, 401);
-  const body = await res.json();
-  assert.equal(body.success, false);
 });

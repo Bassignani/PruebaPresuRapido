@@ -1,5 +1,5 @@
 function createRequireAuth(expectedToken) {
-  return function requireAuth(req, res, next) {
+  return function requireAuth(req, _res, next) {
     const authHeader = req.headers.authorization || '';
     const token = authHeader.replace('Bearer ', '');
 
@@ -7,7 +7,10 @@ function createRequireAuth(expectedToken) {
       return next();
     }
 
-    return res.status(401).json({ success: false, error: 'No autorizado' });
+    const err = new Error('No autorizado');
+    err.status = 401;
+    err.code = 'UNAUTHORIZED';
+    return next(err);
   };
 }
 

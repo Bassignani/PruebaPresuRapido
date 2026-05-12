@@ -1,4 +1,6 @@
 const express = require('express');
+const { validate } = require('../middleware/validate');
+const { saveBudgetSchema } = require('../schemas/budgetSchemas');
 const {
   generateBudgetNumber,
   saveBudget,
@@ -9,24 +11,18 @@ const {
 function createBudgetRouter(storageDir, requireAuth) {
   const router = express.Router();
 
-  router.post('/new', requireAuth, (_req, res) => {
+  router.post('/new', requireAuth, (_req, res, next) => {
     try {
       const budget = generateBudgetNumber(storageDir);
-      res.json({ success: true, budgetNumber: budget.number });
+      return res.json({ success: true, budgetNumber: budget.number });
     } catch (error) {
-      console.error('Error generating budget number:', error);
-      res.status(500).json({ success: false, error: error.message });
+      return next(error);
     }
   });
 
-  router.post('/save', requireAuth, (req, res) => {
+  router.post('/save', requireAuth, validate(saveBudgetSchema), (req, res, next) => {
     try {
       const { budgetNumber, data } = req.body;
-
-      if (!budgetNumber || !data) {
-        return res.status(400).json({ success: false, error: 'Missing budgetNumber or data' });
-      }
-
       const saved = saveBudget(storageDir, budgetNumber, data);
       return res.json({
         success: true,
@@ -34,33 +30,33 @@ function createBudgetRouter(storageDir, requireAuth) {
         path: saved.budgetDir,
       });
     } catch (error) {
-      console.error('Error saving budget:', error);
-      return res.status(500).json({ success: false, error: error.message });
+      return next(error);
     }
   });
 
-  router.get('/list', requireAuth, (_req, res) => {
+  router.get('/list', requireAuth, (_req, res, next) => {
     try {
       const budgets = listBudgets(storageDir);
-      res.json({ success: true, budgets });
+      return res.json({ success: true, budgets });
     } catch (error) {
-      console.error('Error listing budgets:', error);
-      res.status(500).json({ success: false, error: error.message });
+      return next(error);
     }
   });
 
-  router.get('/:number', requireAuth, (req, res) => {
+  router.get('/:number', requireAuth, (req, res, next) => {
     try {
       const budget = loadBudget(storageDir, req.params.number);
 
       if (!budget) {
-        return res.status(404).json({ success: false, error: 'Presupuesto no encontrado' });
+        const err = new Error('Presupuesto no encontrado');
+        err.status = 404;
+        err.code = 'BUDGET_NOT_FOUND';
+        return next(err);
       }
 
       return res.json({ success: true, budget });
     } catch (error) {
-      console.error('Error loading budget:', error);
-      return res.status(500).json({ success: false, error: error.message });
+      return next(error);
     }
   });
 

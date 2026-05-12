@@ -5,6 +5,7 @@ const { ensureStorage } = require('./services/budgetService');
 const { createRequireAuth } = require('./middleware/auth');
 const { createAuthRouter } = require('./routes/authRoutes');
 const { createBudgetRouter } = require('./routes/budgetRoutes');
+const { notFoundHandler, globalErrorHandler } = require('./middleware/errorHandler');
 
 function createApp() {
   const app = express();
@@ -18,6 +19,9 @@ function createApp() {
 
   app.use('/api', createAuthRouter(auth));
   app.use('/api/budgets', createBudgetRouter(storageDir, requireAuth));
+
+  app.use(notFoundHandler);
+  app.use(globalErrorHandler);
 
   return { app, port };
 }
