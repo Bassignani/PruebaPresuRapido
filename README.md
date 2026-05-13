@@ -58,6 +58,20 @@ npm start
 http://localhost:3000
 ```
 
+### Variables de entorno (login)
+
+Crea un archivo `.env` para entorno local con:
+
+```bash
+PORT=3000
+AUTH_USER=tu_usuario
+AUTH_PASS=tu_contraseña
+AUTH_TOKEN=token_largo_y_seguro
+```
+
+> En producción (Vercel), estas mismas variables se configuran desde **Project Settings → Environment Variables**.
+
+
 ### Flujo de Uso de la Aplicación
 
 1. **Nuevo Presupuesto**: Clic en "📋 Nuevo Presupuesto"
@@ -124,13 +138,35 @@ git push -u origin main
 6. Vercel auto-detectará la configuración de `vercel.json`
 7. Clic en **"Deploy"**
 
-### Paso 3: Acceder a la Aplicación
+### Paso 3: Configurar Variables de Entorno en Vercel
+
+En tu proyecto de Vercel: **Settings → Environment Variables**
+
+- `AUTH_USER` = usuario de acceso
+- `AUTH_PASS` = contraseña de acceso
+- `AUTH_TOKEN` = token interno para API
+
+Luego redeploy.
+
+### Paso 4: Deploy desde CLI (opcional)
+
+```bash
+npm i -g vercel
+vercel login
+vercel link
+vercel env add AUTH_USER production
+vercel env add AUTH_PASS production
+vercel env add AUTH_TOKEN production
+vercel --prod
+```
+
+### Paso 5: Acceder a la Aplicación
 
 - La URL será: `https://tu-proyecto.vercel.app`
 - La puedes compartir con otros usuarios
 - Se pueden acceder desde cualquier dispositivo
 
-### Paso 4: Actualizar en Producción
+### Paso 6: Actualizar en Producción
 
 Cuando hagas cambios locales:
 ```bash
@@ -140,6 +176,13 @@ git push origin main
 ```
 
 Vercel se re-deployará automáticamente.
+
+
+### Importante sobre carpetas históricas (`Storage/`)
+
+Vercel usa filesystem efímero en funciones Node.js. Esto significa que las carpetas locales históricas (`Storage/...`) **no se conservan permanentemente** tras redeploy/reinicio.
+
+Si necesitas mantener todos los presupuestos viejos, debes mover persistencia a base de datos u objeto (por ejemplo: PostgreSQL, MongoDB Atlas, Vercel Blob, S3, etc.).
 
 ## API Rest
 

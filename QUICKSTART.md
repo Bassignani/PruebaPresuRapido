@@ -72,3 +72,14 @@ Tu app estará en: `https://tu-proyecto.vercel.app`
 - Ver `README.md` para documentación completa
 - Revisar consola del navegador (F12) para errores
 - Logs del servidor en terminal
+
+
+## Variables de entorno para acceso
+
+Configura en local `.env` y en Vercel (Project Settings → Environment Variables):
+
+- `AUTH_USER`
+- `AUTH_PASS`
+- `AUTH_TOKEN`
+
+> Comando correcto para iniciar local: `npm start` (no `rpm start`).
