@@ -1,3 +1,4 @@
+require('dotenv').config();
 const path = require('path');
 
 const ROOT_DIR = path.join(__dirname, '..', '..');

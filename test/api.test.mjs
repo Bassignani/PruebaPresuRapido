@@ -26,7 +26,7 @@ describe('API', () => {
 
     const loginRes = await request(app)
       .post('/api/login')
-      .send({ username: 'admin', password: 'presu123' });
+      .send({ username: process.env.AUTH_USER, password: process.env.AUTH_PASS });
     expect(loginRes.status).toBe(200);
     expect(loginRes.body.success).toBe(true);
 
@@ -64,7 +64,7 @@ describe('API', () => {
     const { app } = createApp();
     const loginRes = await request(app)
       .post('/api/login')
-      .send({ username: 'admin', password: 'presu123' });
+      .send({ username: process.env.AUTH_USER, password: process.env.AUTH_PASS });
 
     const token = loginRes.body.token;
 
