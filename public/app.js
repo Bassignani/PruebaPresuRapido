@@ -124,7 +124,7 @@ async function saveBudget() {
       currentBudgetNameSpan.textContent = `Presupuesto: ${currentBudgetId}`;
       alert("Presupuesto guardado correctamente");
     } else {
-      alert("Error al guardar: " + result.error);
+      alert("Error al guardar: " + (result.error?.message || JSON.stringify(result.error)));
     }
   } catch (error) {
     console.error("Error saving budget:", error);
