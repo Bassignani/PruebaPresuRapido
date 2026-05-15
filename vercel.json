@@ -1,5 +1,7 @@
 {
   "version": 2,
+  "buildCommand": "npm run build || true",
+  "outputDirectory": "public",
   "functions": {
     "api/index.js": {
       "memory": 1024,
@@ -8,8 +10,16 @@
   },
   "routes": [
     {
-      "src": "/(.*)",
+      "src": "/api/(.*)",
       "dest": "/api/index.js"
+    },
+    {
+      "src": "/index.html",
+      "dest": "/api/index.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
     }
   ]
 }
