@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "buildCommand": "npm run build || true",
   "outputDirectory": "public",
   "functions": {
     "api/index.js": {
@@ -14,12 +13,11 @@
       "dest": "/api/index.js"
     },
     {
-      "src": "/index.html",
-      "dest": "/api/index.js"
+      "handle": "filesystem"
     },
     {
       "src": "/(.*)",
-      "dest": "/public/$1"
+      "dest": "/index.html"
     }
   ]
 }

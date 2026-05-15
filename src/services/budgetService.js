@@ -1,117 +1,78 @@
-const fs = require('fs');
-const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 
-function ensureStorage(storageDir) {
-  if (!fs.existsSync(storageDir)) {
-    fs.mkdirSync(storageDir, { recursive: true });
+let _client = null;
+
+function getClient() {
+  if (!_client) {
+    _client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
   }
+  return _client;
 }
 
-function generateBudgetNumber(storageDir, now = new Date()) {
+function ensureStorage() {}
+
+async function generateBudgetNumber(now = new Date()) {
   const dd = String(now.getDate()).padStart(2, '0');
   const mm = String(now.getMonth() + 1).padStart(2, '0');
   const yyyy = now.getFullYear();
-
   const dateFolder = `${dd}${mm}${yyyy}`;
-  const datePath = path.join(storageDir, dateFolder);
 
-  if (!fs.existsSync(datePath)) {
-    fs.mkdirSync(datePath, { recursive: true });
-  }
+  const { data, error } = await getClient()
+    .from('budgets')
+    .select('budget_number')
+    .like('budget_number', `${dateFolder}%`)
+    .order('budget_number', { ascending: false })
+    .limit(1);
 
-  let counter = 1;
-  try {
-    const items = fs.readdirSync(datePath);
-    const numbers = items
-      .map(item => parseInt(item, 10))
-      .filter(num => !Number.isNaN(num))
-      .sort((a, b) => b - a);
+  if (error) throw error;
 
-    if (numbers.length > 0) {
-      counter = numbers[0] + 1;
-    }
-  } catch (_err) {
-    counter = 1;
-  }
+  const counter =
+    data && data.length > 0
+      ? parseInt(data[0].budget_number.substring(8, 12), 10) + 1
+      : 1;
 
   const counterFolder = String(counter).padStart(4, '0');
-
-  return {
-    number: `${dateFolder}${counterFolder}`,
-    dateFolder,
-    counterFolder,
-  };
+  return { number: `${dateFolder}${counterFolder}`, dateFolder, counterFolder };
 }
 
-function getBudgetPath(storageDir, budgetNumber) {
+async function saveBudget(budgetNumber, data) {
   const dateFolder = budgetNumber.substring(0, 8);
-  const counterFolder = budgetNumber.substring(8, 12);
-  return path.join(storageDir, dateFolder, counterFolder, 'presupuesto.json');
+
+  const { error } = await getClient()
+    .from('budgets')
+    .upsert({ budget_number: budgetNumber, date_folder: dateFolder, data });
+
+  if (error) throw error;
+  return { budgetNumber };
 }
 
-function saveBudget(storageDir, budgetNumber, data) {
-  const budgetPath = getBudgetPath(storageDir, budgetNumber);
-  const budgetDir = path.dirname(budgetPath);
+async function loadBudget(budgetNumber) {
+  const { data, error } = await getClient()
+    .from('budgets')
+    .select('data')
+    .eq('budget_number', budgetNumber)
+    .single();
 
-  if (!fs.existsSync(budgetDir)) {
-    fs.mkdirSync(budgetDir, { recursive: true });
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    throw error;
   }
-
-  fs.writeFileSync(budgetPath, JSON.stringify(data, null, 2));
-
-  return {
-    budgetPath,
-    budgetDir,
-  };
+  return data ? data.data : null;
 }
 
-function loadBudget(storageDir, budgetNumber) {
-  const budgetPath = getBudgetPath(storageDir, budgetNumber);
+async function listBudgets() {
+  const { data, error } = await getClient()
+    .from('budgets')
+    .select('budget_number, date_folder, created_at')
+    .order('created_at', { ascending: false });
 
-  if (!fs.existsSync(budgetPath)) {
-    return null;
-  }
+  if (error) throw error;
 
-  const data = fs.readFileSync(budgetPath, 'utf-8');
-  return JSON.parse(data);
+  return (data || []).map(row => ({
+    number: row.budget_number,
+    date: row.created_at,
+    path: `Storage/${row.date_folder}/${row.budget_number.substring(8, 12)}`,
+  }));
 }
 
-function listBudgets(storageDir) {
-  if (!fs.existsSync(storageDir)) {
-    return [];
-  }
-
-  const budgets = [];
-  const dateFolders = fs.readdirSync(storageDir);
-
-  dateFolders.forEach(dateFolder => {
-    const datePath = path.join(storageDir, dateFolder);
-    if (!fs.statSync(datePath).isDirectory()) return;
-
-    const counterFolders = fs.readdirSync(datePath);
-
-    counterFolders.forEach(counterFolder => {
-      const budgetPath = path.join(datePath, counterFolder, 'presupuesto.json');
-
-      if (fs.existsSync(budgetPath)) {
-        const stat = fs.statSync(budgetPath);
-        budgets.push({
-          number: `${dateFolder}${counterFolder}`,
-          date: stat.mtime,
-          path: `Storage/${dateFolder}/${counterFolder}`,
-        });
-      }
-    });
-  });
-
-  budgets.sort((a, b) => new Date(b.date) - new Date(a.date));
-  return budgets;
-}
-
-module.exports = {
-  ensureStorage,
-  generateBudgetNumber,
-  saveBudget,
-  loadBudget,
-  listBudgets,
-};
+module.exports = { ensureStorage, generateBudgetNumber, saveBudget, loadBudget, listBudgets };
